@@ -2,121 +2,212 @@
 # Dash with Tables Lab
 
 ## Introduction
-In this lab we will practice creating data tables in Dash
+In this lab we will practice creating data tables and other elements in Dash. We will then introduce defining callbacks and practice using one to manipulate our table's data.
 
 ## Objectives
+* Create a new Dash app and add a table with data read from an excel
+* Create a dropdown element that provides selections by which to sort the new table
+* Add a callback function to sort the data on the table
 
+## Reading Our Data
 
-## Getting Started with Dash
-
-First things first, we will need to install all the parts of Dash that we will be using. We will need to pip install:
-    * dash -- *dash's backend*
-    * dash-renderer -- *dash's front-end*
-    * dash-html-components -- *dash's components for creating HTML layouts and tags on the web page*
-    * dash-core-components -- *dash's components for creating data visualizations and other tools*
-    * plotly -- *the plotly graphing library*
-    
-We can install all of these by simpling running one command in our terminal:
-    
-> `pip install dash dash-renderer dash-html-components dash-core-components plotly`
-
-## Setting Up a Dash App
-
-To create a new Dash Application, we need to first define our imports in our `app.py` file, which will be the following:
+The first thing we need to do is read our excel file `ramenPhoSobaInterest.xlsx` and extract the data we need to populate our table in dash. To do that, we will import pandas and use the `read_excel` function, which takes at least one argument, the path to the excel file, and multiple optional arguments such as a list of the column `names`. For more information on how this function works, refer to the documentation [here](http://pandas.pydata.org/pandas-docs/version/0.20.2/generated/pandas.read_excel.html)
 
 ```python
-import dash # importing the dash framework
-import dash_core_components as dcc # importing the core components from dash
-import dash_html_components as html # importing the html components from dash
+# in the food_interest_data.py file
+# importing pandas module to read the excel file and extract the data
+import pandas
+# using pandas to read the excel file  and giving the names of the columns
+excel_data = pandas.read_excel('FILE PATH', names=["Country", "Pho", "Ramen", "Soba"])
+
+# removing the first line of data that contains the headers
+# and returning the remating data in a list of dictionaries
+data = excel_data.to_dict('records')[1:]
 ```
 
-Once we have our imports set-up, we can create a new instance of a Dash app with the following line of code:
+Once we have our data, which is a list of dictionaries, which each contain the country and the percentage representing how many google searches were made for Pho, Ramen, or Soba, we can import it to our __init__.py file where we are creating the app's layout and table.
+
+## Creating a Data Table with Dash
+
+Now that we have our information we can begin making our layout. 
+
+Unlike graphs, tables are HTML elements. So, we will add a table to our layout by using the dash_html_components module. So we will need to make sure we first import dash, then dash_html_corecomponents, and our data from the `food_interest_data.py` file. Since we are keeping up with our package structure for our dash app our imports for other files will follow the `from [PACKAGE NAME].[FILE NAME] import [OBJECT NAME]` format. So, to import our `data` our imports will look like the following:
 
 ```python
-# creating a new instance of Dash
-app = dash.Dash() 
+import dash
+import dash_html_components as html
 
-# telling our app to start the server if we are running this file
-if __name__ == '__main__':
-    app.run_server(debug=True)
+from dashwithtables.food_interest_data import data
 ```
 
-Okay, once we've done the above, we have ourselves a Dash app! It doesnt do much (or show much in our browser), but we can certainly run the server and look at in our browser. Let's try it by running the following command in our terminal and then opening a new tab in our browser and navigating to `http://localhost:8050/`
-
-> `python app.py`
-
-Uh oh! We got an error; `AttributeError: 'NoneType' object has no attribute 'traverse'`. Dash is expecting some html, specifically a layout, to display, but we haven't yet given it a layout. Let's keep going and fix this issue.
-
-## Creating a Layout in a Dash App
-
-Okay, we have our Dash app almost working. Let's see how we add a layout to our app. 
-
-You may have already guessed at this point but it is as simple as:
+Then, we will instantiate our new instance of our dash app and give it a url_base_pathname of '/', as a good practice so we signal to ourselves and other developers where we would like for our dashboard to display.
 
 ```python
-app.layout = # some code
+app = dash.Dash(__name__, url_base_pathname='/')
 ```
 
-Unfortunately, we can't just assign the layout to some HTML or even a string of HTML, we need to use dash's html components. So, since we imported the dash_html_components as html, we will reference it as such. To start, we will assign the layout to an html element. Usually we will chose a `div` to start. 
+Let's add our layout! We will want an `h3` tag that reads `"Interest in Pho, Ramen, and Soba by Country according to Google Search from 01/2004 - 06/2018"`, and beneath that we will want our table.
+
+Tables are easy to instantiate. We simply use html.Table(`children=[SOMECODE]`). Tables have several rows, the first of which is the header for the rest of the table, or the name of the columns. Since each dictionary has the name of the column pointing to its value `{'Country': 'Japan', 'Pho': 0.04, 'Ramen': 0.72, 'Soba': 0.24}` we, can create a function that will create the header row for us. Let's define a function called `generate table` that will create the dash html components and rows we need for our table. We can then call this function in our layout, to, well... generate the table! Remember to give it an argument that is the data we are importing from our `food_interest_data` file. We can give this function a default argument of our data object. 
 
 ```python
-app.layout = html.Div("Hello World")
+def generate_table(table_data=data):
+html.Tr(id='food-table', children=[html.Th(col) for col in dataframe[0].keys()])]
 ```
 
-Now, if we add this in directly underneath where we instantiated our dash app, we will be able to successfully start our dash app's server and again visit it in the browser at `http://localhost:8050/`. Try it out!
+First we create a table row (i.e. `html.Tr`). Then we are creating the children for that first row, which will be the table headers (i.e. `html.Th`). To get each column name as a table header we can use one element from our list of data and get the keys (i.e. `data[0].keys()`). Then we use list compresion to push each new table header into the array of children for the first row.
 
-Great! We see a div with the text "Hello World". Since we will be adding more than just a simple div to our page, we should re-format this layout a bit. Instead of giving our layout's most outer div tag just a string of "Hello World", we give it a `children` attribute and assign it to a list. 
+If we look at our table now, it should look something like the folling:
+
+> <h3>Interest in Pho, Ramen, and Soba by Country according to Google Search from 01/2004 - 06/2018</h3>
+> <table>
+    <tr>
+        <strong><th>Country</th><th>Pho</th><th>Ramen</th><th>Soba</th></strong>
+    </tr>
+</table>
+
+We made this first row somewhat manually since there is only one. However, we aren't sure how many other rows there are in total. So, we're probably better off creating a list of table rows similar to how we made the table columns, using list comprehension:
 
 ```python
-app.layout = html.Div(children=[])
+# creating a table row for each dictionary in our list of data
+[html.Tr(children=[somecode]) for data_dict in data]
 ```
 
-> **Note:** You can give any dash html element a children attribute, however, you should only do this if you are nesting multiple html elements within that element (i.e. our page layout, an ordered or unordered list of elements, etc.)
+We haven't yet told our table rows what they are going to contain. They aren't going to contain table headers, since they aren't going to be the first row. They will contain table cells or table data (i.e. html.Td(`[somecode]`)). 
 
-Inside this list we are going to add all the other html elements we want to display on our page. Let's add an `h1` tag that reads "Hello, this is my first dash app" and below that let's add a `p` tag that reads "Still under construction... :)". 
+```python
+# creating a table row for each dictionary in our list of data
+[html.Tr(children=[html.Td(data_dict['country']), html.Td(data_dict['Pho']), html.Td(data_dict['Ramen']), html.Td(data_dict['Soba'])]) for data_dict in data]
+```
 
-> **Note:** as our layout grows, it is important to have a clean formatting so that we can more easily read and manage our code base. Below is an illustration of how we should format the dash html elements in our list of html children.
+Our first naive approach might be to do the above. We have seen what the data looks like and know there are 4 columns and we can just create four table data elements for each row and get the value from our dictionary by hardcoding the names of each key like we do above. However, if we wanted to make this code a but more re-usable and programmatic, we would need to change this. Plus, if our excel ever changes by adding a column or just changing one of the column names, we would have to then change this function. So, let's see how we could make this more programmatic.
+
+```python
+# creating a table row for each dictionary in our list of data
+[html.Tr(children=[html.Td(data_dict[column]) for column in data_dict.keys()]) for data_dict in data]
+```
+
+Above we are creating a dictionary keys (`dict_keys`) object and iterating over each element, which represent the name of each key in the dictionary, and using it to create a table cell with the value from each key or column with list comprehension. Now, our code is not only more concise, but it is autmatically generating a table cell for each column in the table and accurately giving it the value of that cell. 
+
+This should create all the cells we need for our table. However, we have headers in a list too, so, if we keep our code as is, we will get an error since we will have our table's children attribute pointing to two separate lists. To fix this we will need to combine these lists into one. One way of combining lists is simply adding the two together. So, we simply need to add a `+` between our two lists.
+
+Now, if we look at our dashboard in the browser we should have a fully filled-in table!
+
+> <h3>Interest in Pho, Ramen, and Soba by Country according to Google Search from 01/2004 - 06/2018</h3>
+> <table>
+    <tr>
+        <strong><th>Country</th><th>Pho</th><th>Ramen</th><th>Soba</th></strong>
+    </tr>
+    <tr><td>Japan</td><td>0.04</td><td>0.72</td><td>0.24</td></tr>
+    <tr><td>Taiwan</td><td>0.04</td><td>0.91</td><td>0.05</td></tr>
+    <tr><td>Singapore</td><td>0.16</td><td>0.74</td><td>0.1</td></tr>
+    <tr><td>Hong Kong</td><td>0.14</td><td>0.75</td><td>0.11</td></tr>
+    <tr><td>Philippines</td><td>0.18</td><td>0.78</td><td>0.04</td></tr>
+    <tr><td>Canada</td><td>0.6</td><td>0.34</td><td>0.06</td></tr>
+    <tr><td>United States</td><td>0.51</td><td>0.45</td><td>0.04</td></tr>
+</table>
+
+## Creating a Callback Function in Dash
+
+Great, we now have a table that is displaying the countries and the comparative percentages for whic they query google for Pho, Ramen, and Soba. What if we'd like to sort this information? First we will need to add in a dropdown, which is a dcc component. We can add the following drop down which will give us 4 `options` which are elements that are the children of a dropdown. The options have a `label`, the text you want displayed, and a `value`, the string or other piece of data you want to use to represent that selection. In this case ours will be the same as we will want our drop down selections to indicate the column we want to filter by.
+
+```python
+dcc.Dropdown(
+        id='sort-by-selector',
+        options=[
+            {'label': 'None', 'value': None},
+            {'label': 'Country', 'value': 'Country'},
+            {'label': 'Pho', 'value': 'Pho'},
+            {'label': 'Ramen', 'value': 'Ramen'},
+            {'label': 'Soba', 'value': 'Soba'}
+        ],
+        value="Country"
+```
+Like all other elements, we give the dropdown an `id`. The `value` property will be the starting value for the dropdown.
+
+Now that we have added a dropdown to the top of our app's layout, we can interact with our table by using a callback. A callback is defined using a decorator on the app, similar to a route.
+
+```python
+@app.callback(
+    # some code goes here   
+)
+```
+
+Inside our call back, we decide what the callback is going to take in as the value we are looking to change and the output, or where we would like to make our change. Our dropdown is going to have the value by which we want to filter our table, and the table (id='food-table') is going to be the element we want to alter. 
+
+First we will need to import the `Input` and `Output` modules from `dash.dependencies`. So, let's update our imports to include that.
+
+```python
+from dash.dependencies import Input, Output
+```
+
+Now let's star to fill in our callback function. 
+
+```python
+@app.callback(
+    Output(component_id='food-table', component_property='children'),
+    [Input(component_id='sort-by-selector', component_property='value')]
+)
+```
+
+First we define which element is going to take the output and which attribute we are going to overwrite. Then we define the input for our callback in a list. Next, we define our function and how we would like to manipulate our data. We will call this function `sort_table` and pass it the an arugment that is going to be the value from the dropdown with the id `sort-by-selector`. We can call this argument whatever we want, but let's name it `input_value` for now.
+
+```python
+def sort_table(input_value):
+    # some code
+```
+
+The input value is going to be the value of whichever `option` we select in our dropdown element. So, our sort logiv will look something like this:
+
+```python
+# datum is a single dictionary
+# input value represents the value we selected
+# we will use this value to access the datum key's value by which we want to sort our data
+sorted(data, key=lambda datum: datum[input_value])
+```
+
+Lastly, we will pass this sorted data to our `generate_table` function so that we can re-create our newly sorted table.
+
+```python
+def sort_table(input_value):
+    # using global to make sure we are accessing the imported data object
+    global data
+    sorted_data = sorted(data, key=lambda datum: datum[input_value])
+    return generate_table(sorted_data)
+```
+
+Now when we make a selection our table will sort by the selection -- the default is currently by country.
+
+Uh oh! If we look at our terminal we can see that this callback is firing over and over! 
+
+To fix this, we will need to change a bit how we structured things. Instead of calling `generate_table` in our app's layout, we will create a new `html.Div` element named `table-container` that will now recieve the output value of our callback -- which will get invoked once, when the page loads and everytime we make a selection in the dropdown. We then need to update our callback definition's output `id` to be `table-container`. Once we do both of these changes our table should be sorting and our terminal should be working a bit easier.
 
 ```python
 app.layout = html.Div(children=[
-    html.ExampleElement("Example Text"),
-    html.AnotherElement("More text")
-])
-```
-
-Now, when we visit our app in the browser, we should see a page that looks like this:
-
-> <h1>Hello, this is my first dash app</h1>
-> <p>Still under construction... :)</p>
-
-## Adding Data Visualization With Graphs
-
-Okay okay, we can display HTML. That is fun and all but let's get to the good stuff and get some cool graphs on the page already!
-
-Remember when we imported dash's core components? Well, we are going to finally use them! We will use the `dcc` import to create a graph. To do this, we will simply add a third element to our list of children in our app's outer most `div`. 
-
-Creating a graph with dash's core components is very similar to creating a graph using the plotly libray. First we will create a new graph object with `dcc.Graph()`. The graph object takes a few different attributes. Below we see an example graph object:
-
-> ```python
-dcc.Graph(
-    id = "Example Graph",
-    figure = {
-        data: [
-            {'x': [1,2,3], 'y': [4,5,6], 'type': "bar", 'name': "Example"},
-            {'x': [3,2,1], 'y': [6,5,4], 'type': "line", 'name': "Another Example"}
+    dcc.Dropdown(
+        id='sort-by-selector',
+        options=[
+            {'label': 'Country', 'value': 'Country'},
+            {'label': 'Pho', 'value': 'Pho'},
+            {'label': 'Ramen', 'value': 'Ramen'},
+            {'label': 'Soba', 'value': 'Soba'}
         ],
-        layout: {
-            'title': "Example Graph"
-        }
-    }
+        value="Country"
+    ),
+    html.H3('Interest in Pho, Ramen, and Soba by Country according to Google Search from 01/2004 - 06/2018'),
+    html.Div(id='table-container')
+])
+
+@app.callback(
+    Output(component_id='table-container', component_property='children'),
+    [Input(component_id='sort-by-selector', component_property='value')]
+)
+def sort_table(input_value):
+    global data
+    sorted_data = sorted(data, key=lambda datum: datum[input_value])
+    return generate_table(sorted_data)
 ```
-
-As we can see, first our graph has an `id` attribute. Although we wont be using the ID in this lab, this is a necessary attribute. Next, our graph has a dictionary called `figure`, which has two attributes, `data` and `layout`. Data, is the stuff we want to plot on our graph -- it has data points for the `x` and `y` axes as well as the type of graph  and the name of each grouping of data. The figure's layout arrtibute takes a title so we can give our graph a descriptive title -- pretty simple.
-
-Let's try building this out with the data we already have provided for us in the uber_data.py file. We can either import this data or copy it over to our app.py file. Let's give our graph an `id` of "uber_data_" we have our data in place, we will give our graph the title, `"Uber Pricing in Brooklyn and Manhattan"` and then our graph should be good to go! Let's save our work and view our dash app in the browser again.
-
-![preview of new dash app](https://learn-verified.s3.amazonaws.com/data-science-assets/dash_manhattan_brooklyn_uber_prices.png)
 
 ## Summary
 
-Great work! In this lab we practiced setting up a dash app. We then added a layout using dash's html components and learned how to create nested html tags on our layout. Finally we practiced data visualisation using dash's core components to create a graph with pre-polutated data showing the relationship between distance and price in taxi fares in Brooklyn and Manhattan.
+Great work! In this lab, we practiced creating a dash app, using both dash corecomponents and dash html components to create a table on our app's dashboard. Then we defined a callback that programmatically sorted our app's table by the selected column from our dropdown element.
