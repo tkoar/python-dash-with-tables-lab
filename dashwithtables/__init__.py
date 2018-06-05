@@ -4,6 +4,7 @@ import dash
 import dash_core_components as dcc
 #import dash html components as html
 import dash_html_components as html
+# import Input, Output from dash.dependencies for callback functions
 from dash.dependencies import Input, Output
 
 # import data about interest of pho/ramen/soba
@@ -11,16 +12,13 @@ from dashwithtables.food_interest_data import data
 
 # create dash app and make path '/'
 app = dash.Dash(__name__, url_base_pathname='/')
-sort_by = ""
 
 def generate_table(table_data=data):
     return html.Table(id='food-table', children=
-        # Header
+        # create table headers
         [html.Tr(id='headers', children=[html.Th(col) for col in table_data[0].keys()])]
-
-        +
-
-        # Body
+        + # combine both table headers and cells into one list
+        # create table cells
         [html.Tr(id='row-data', children=[
             html.Td(data_dict[column]) for column in data_dict.keys()
         ]) for data_dict in table_data]
